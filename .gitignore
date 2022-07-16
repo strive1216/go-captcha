@@ -24,3 +24,4 @@ tests/.cache
 *.njsproj
 *.sln
 *.sw?
+.history/

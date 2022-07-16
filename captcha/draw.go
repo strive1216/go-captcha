@@ -29,8 +29,8 @@ type DrawDot struct {
 	Height  int
 	Angle   int
 	Color   string
-	Color2   string
-	Font    string
+	Color2  string
+	Font    []byte
 }
 
 // DrawCanvas is a type
@@ -42,7 +42,7 @@ type DrawCanvas struct {
 	Width  int
 	Height int
 	// 背景图片
-	Background string
+	Background []byte
 	// 缩略图扭曲程度，值为 Distort...,
 	BackgroundDistort int
 	// 缩略图小圆点数量
@@ -56,11 +56,11 @@ type DrawCanvas struct {
 	// 点
 	CaptchaDrawDot []DrawDot
 	// 文本阴影偏移位置
-	ShowTextShadow 		bool
+	ShowTextShadow bool
 	// 文本阴影颜色
-	TextShadowColor 	string
+	TextShadowColor string
 	// 文本阴影偏移位置
-	TextShadowPoint 	Point
+	TextShadowPoint Point
 }
 
 // AreaPoint is a type
@@ -151,7 +151,7 @@ func (cd *Draw) Draw(params DrawCanvas) (image.Image, error) {
 				co := textImg.At(x, y)
 				if _, _, _, a := co.RGBA(); a > 0 {
 					if x >= minX && x <= maxX && y >= minY && y <= maxY {
-						canvas.Set(dot.Dx + (x - minX), dot.Dy - height + (y - minY), textImg.At(x, y))
+						canvas.Set(dot.Dx+(x-minX), dot.Dy-height+(y-minY), textImg.At(x, y))
 					}
 				}
 			}
@@ -164,13 +164,7 @@ func (cd *Draw) Draw(params DrawCanvas) (image.Image, error) {
 		dot.Dy = maxY
 	}
 
-	bgFile := params.Background
-	imgBg, iErr := getAssetCache(bgFile)
-	if iErr != nil {
-		return canvas, iErr
-	}
-
-	img, dErr := decodingBinaryToImage(imgBg)
+	img, dErr := decodingBinaryToImage(params.Background)
 	if dErr != nil {
 		return canvas, dErr
 	}
@@ -216,12 +210,7 @@ func (cd *Draw) DrawWithPalette(params DrawCanvas, colorA []color.Color, colorB 
 	}
 
 	for _, dot := range dots {
-		// 读字体数据
-		fontBytes, err := getAssetCache(dot.Font)
-		if err != nil {
-			return canvas, err
-		}
-		fontN, err := freetype.ParseFont(fontBytes)
+		fontN, err := freetype.ParseFont(dot.Font)
 		if err != nil {
 			return canvas, err
 		}
@@ -249,13 +238,8 @@ func (cd *Draw) DrawWithPalette(params DrawCanvas, colorA []color.Color, colorB 
 		}
 	}
 
-	if params.Background != "" {
-		bgFile := params.Background
-		imgBg, iErr := getAssetCache(bgFile)
-		if iErr != nil {
-			return canvas, iErr
-		}
-		img, dErr := decodingBinaryToImage(imgBg)
+	if params.Background != nil {
+		img, dErr := decodingBinaryToImage(params.Background)
 		if dErr != nil {
 			return canvas, dErr
 		}
@@ -293,11 +277,11 @@ func (cd *Draw) rangCutImage(width int, height int, img image.Image) (int, int) 
 	curX := 0
 	curY := 0
 
-	if iW - width > 0 {
-		curX = RandInt(0, iW - width)
+	if iW-width > 0 {
+		curX = RandInt(0, iW-width)
 	}
-	if iH - height > 0 {
-		curY = RandInt(0, iH - height)
+	if iH-height > 0 {
+		curY = RandInt(0, iH-height)
 	}
 
 	return curX, curY
@@ -401,12 +385,7 @@ func (cd *Draw) DrawStrImg(dot DrawDot, colorArr []color.RGBA, fc color.Color) *
 		Height: dot.Height + 10,
 	}, colorArr)
 
-	// 读字体数据
-	fontBytes, err := getAssetCache(dot.Font)
-	if err != nil {
-		return canvas
-	}
-	fontN, err := freetype.ParseFont(fontBytes)
+	fontN, err := freetype.ParseFont(dot.Font)
 	if err != nil {
 		return canvas
 	}
@@ -428,7 +407,7 @@ func (cd *Draw) DrawStrImg(dot DrawDot, colorArr []color.RGBA, fc color.Color) *
 	// 画文本
 	text := fmt.Sprintf("%s", dot.Text)
 
-	pt := freetype.Pt(12, dot.Height - 5) // 字出现的位置
+	pt := freetype.Pt(12, dot.Height-5) // 字出现的位置
 	if IsChineseChar(text) {
 		pt = freetype.Pt(10, dot.Height) // 字出现的位置
 	}
@@ -440,7 +419,6 @@ func (cd *Draw) DrawStrImg(dot DrawDot, colorArr []color.RGBA, fc color.Color) *
 
 	return canvas
 }
-
 
 /**
  * @Description: 计算剪裁空白多余空白
@@ -477,10 +455,10 @@ func (cd *Draw) calcImageSpace(pa *Palette) *AreaPoint {
 		}
 	}
 
-	minX = int(math.Max(0, float64(minX - 2)))
-	maxX = int(math.Min(float64(nW), float64(maxX + 2)))
-	minY = int(math.Max(0, float64(minY - 2)))
-	maxY = int(math.Min(float64(nH), float64(maxY + 2)))
+	minX = int(math.Max(0, float64(minX-2)))
+	maxX = int(math.Min(float64(nW), float64(maxX+2)))
+	minY = int(math.Max(0, float64(minY-2)))
+	maxY = int(math.Min(float64(nH), float64(maxY+2)))
 
 	return &AreaPoint{
 		minX,
@@ -513,7 +491,7 @@ func (cd *Draw) centerWithImage(m image.Image) image.Image {
 	centerImage := image.NewRGBA(image.Rect(0, 0, max, max))
 	for x := m.Bounds().Min.X; x < m.Bounds().Max.X; x++ {
 		for y := m.Bounds().Min.Y; y < m.Bounds().Max.Y; y++ {
-			centerImage.Set(x, temp + y, m.At(x, y))
+			centerImage.Set(x, temp+y, m.At(x, y))
 		}
 	}
 	return centerImage
@@ -528,16 +506,16 @@ func (cd *Draw) centerWithImage(m image.Image) image.Image {
 func (cd *Draw) strikeThrough(m *Palette, dotSize int) {
 	maxx := m.Bounds().Max.X
 	maxy := m.Bounds().Max.Y
-	y := RandInt(maxy / 3, maxy - maxy / 3)
+	y := RandInt(maxy/3, maxy-maxy/3)
 	amplitude := RandFloat(5, 20)
 	period := RandFloat(80, 180)
 	dx := 2.0 * math.Pi / period
 	for x := 0; x < maxx; x++ {
-		xo := amplitude * math.Cos(float64(y) * dx)
-		yo := amplitude * math.Sin(float64(x) * dx)
+		xo := amplitude * math.Cos(float64(y)*dx)
+		yo := amplitude * math.Sin(float64(x)*dx)
 		for yn := 0; yn < dotSize; yn++ {
 			r := RandInt(0, dotSize)
-			m.drawCircle(x + int(xo), y + int(yo) + (yn * dotSize), r / 2, 1)
+			m.drawCircle(x+int(xo), y+int(yo)+(yn*dotSize), r/2, 1)
 		}
 	}
 }
@@ -558,11 +536,11 @@ func (cd *Draw) drawSlimLine(m *Palette, num int, colorB []color.Color) {
 		point2 := Point{X: mRand.Intn(first) + end, Y: mRand.Intn(y)}
 
 		if i%2 == 0 {
-			point1.Y = mRand.Intn(y) + y * 2
+			point1.Y = mRand.Intn(y) + y*2
 			point2.Y = mRand.Intn(y)
 		} else {
-			point1.Y = mRand.Intn(y) + y * (i % 2)
-			point2.Y = mRand.Intn(y) + y * 2
+			point1.Y = mRand.Intn(y) + y*(i%2)
+			point2.Y = mRand.Intn(y) + y*2
 		}
 
 		co := cd.genRandColor(colorB)
@@ -583,8 +561,8 @@ func (cd *Draw) fillWithCircles(m *Palette, n, maxRadius int, circleCount int) {
 	maxx := m.Bounds().Max.X
 	maxy := m.Bounds().Max.Y
 	for i := 0; i < n; i++ {
-		colorIdx := uint8(RandInt(1, circleCount - 1))
+		colorIdx := uint8(RandInt(1, circleCount-1))
 		r := RandInt(1, maxRadius)
-		m.drawCircle(RandInt(r, maxx - r), RandInt(r, maxy - r), r, colorIdx)
+		m.drawCircle(RandInt(r, maxx-r), RandInt(r, maxy-r), r, colorIdx)
 	}
 }

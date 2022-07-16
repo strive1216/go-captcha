@@ -93,9 +93,9 @@ func ParseHexColor(s string) (c color.RGBA, err error) {
 
 	switch len(s) {
 	case 7:
-		c.R = hexToByte(s[1]) << 4 + hexToByte(s[2])
-		c.G = hexToByte(s[3]) << 4 + hexToByte(s[4])
-		c.B = hexToByte(s[5]) << 4 + hexToByte(s[6])
+		c.R = hexToByte(s[1])<<4 + hexToByte(s[2])
+		c.G = hexToByte(s[3])<<4 + hexToByte(s[4])
+		c.B = hexToByte(s[5])<<4 + hexToByte(s[6])
 
 	case 4:
 		c.R = hexToByte(s[1]) * 17
@@ -196,7 +196,7 @@ func RandInt(min, max int) int {
  * @return float64
  */
 func RandFloat(min, max int) float64 {
-	return float64(RandInt(min, max))
+	return float64(RandInt(min, max)) + float64(RandInt(0, 10))*0.1
 }
 
 // IsChineseChar is a function
